@@ -12,6 +12,8 @@ const canvas = new fabric.Canvas("editorCanvas", {
 let currentImage = null;
 let history = [];
 let isUndoing = false;
+let redoStack = [];
+let isRedoing = false;
 let currentMode = "move";
 let cropRect = null;
 let isCropMode = false;
@@ -81,11 +83,13 @@ window.addEventListener("load", () => {
 
 /* ---------- History (Undo) ---------- */
 function saveState() {
-  if (isUndoing) return;
+  if (isUndoing || isRedoing) return;
   try {
     const json = canvas.toJSON(["selectable"]);
     history.push(json);
     if (history.length > 40) history.shift();
+    // new action invalidates redo history
+    redoStack = [];
   } catch (e) {
     console.warn("saveState error", e);
   }
@@ -93,23 +97,50 @@ function saveState() {
 
 const undoBtn = document.getElementById("undoBtn");
 if (undoBtn) {
-  undoBtn.addEventListener("click", () => {
-    // require at least two states: current + previous
-    if (history.length < 2) return;
-    isUndoing = true;
-    // drop current state
-    history.pop();
-    const prev = history[history.length - 1];
-    if (!prev) {
-      isUndoing = false;
-      return;
-    }
-    canvas.loadFromJSON(prev, () => {
-      canvas.renderAll();
-      isUndoing = false;
-    });
+  undoBtn.addEventListener("click", handleUndo);
+}
+
+// Also wire top undo button if present
+const undoTop = document.getElementById("undoTop");
+if (undoTop) undoTop.addEventListener("click", handleUndo);
+
+function handleUndo() {
+  // require at least two states: current + previous
+  if (history.length < 2) return;
+  isUndoing = true;
+  // move current into redo stack
+  const current = history.pop();
+  if (current) redoStack.push(current);
+  const prev = history[history.length - 1];
+  if (!prev) {
+    isUndoing = false;
+    return;
+  }
+  canvas.loadFromJSON(prev, () => {
+    canvas.renderAll();
+    isUndoing = false;
   });
 }
+
+// Redo handler
+function handleRedo() {
+  if (!redoStack.length) return;
+  isRedoing = true;
+  const next = redoStack.pop();
+  if (!next) {
+    isRedoing = false;
+    return;
+  }
+  // push current state to history (so another undo will work)
+  history.push(next);
+  canvas.loadFromJSON(next, () => {
+    canvas.renderAll();
+    isRedoing = false;
+  });
+}
+
+const redoTop = document.getElementById("redoTop");
+if (redoTop) redoTop.addEventListener("click", handleRedo);
 
 ["object:added", "object:modified", "object:removed"].forEach((ev) => {
   canvas.on(ev, () => saveState());
@@ -391,6 +422,62 @@ function applyFilter(type) {
   currentImage.applyFilters();
   canvas.renderAll();
   saveState();
+}
+
+// --- Top toolbar wiring (buttons in header) ---
+const topToolButtons = document.querySelectorAll(".top-tool-btn");
+const topFiltersDiv = document.getElementById("topFilters");
+const topFilterGray = document.getElementById("topFilterGray");
+const topFilterSepia = document.getElementById("topFilterSepia");
+const topFilterInvert = document.getElementById("topFilterInvert");
+const topFilterReset = document.getElementById("topFilterReset");
+
+if (topFilterGray) topFilterGray.addEventListener("click", () => applyFilter("grayscale"));
+if (topFilterSepia) topFilterSepia.addEventListener("click", () => applyFilter("sepia"));
+if (topFilterInvert) topFilterInvert.addEventListener("click", () => applyFilter("invert"));
+if (topFilterReset)
+  topFilterReset.addEventListener("click", () => {
+    if (!currentImage) return;
+    currentImage.filters = [];
+    currentImage.applyFilters();
+    canvas.renderAll();
+    saveState();
+  });
+
+if (topToolButtons && topToolButtons.length) {
+  topToolButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      // toggle active state in top toolbar
+      topToolButtons.forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+
+      const mode = btn.dataset.mode;
+      if (mode === "brush") {
+        currentMode = "brush";
+        updateMode();
+      } else if (mode === "text") {
+        // focus text input so user can type and add
+        currentMode = "move";
+        updateMode();
+        if (textInput) textInput.focus();
+      } else if (mode === "filters") {
+        // toggle filters popover
+        if (topFiltersDiv) topFiltersDiv.classList.toggle("open");
+      } else if (mode === "transform") {
+        currentMode = "move";
+        updateMode();
+        // focus rotate control if available
+        if (rotateRange) rotateRange.focus();
+      } else if (mode === "crop") {
+        currentMode = "crop";
+        updateMode();
+      }
+    });
+  });
 }
 
 /* ---------- Transform: Rotate + Scale ---------- */

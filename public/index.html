@@ -22,7 +22,25 @@
           Upload
           <input type="file" id="uploadImage" accept="image/*" hidden>
         </label>
-        <button id="downloadBtn" class="btn">Download</button>
+        <div class="top-tools" role="toolbar" aria-label="Editor tools">
+          <button class="btn small top-tool-btn" data-mode="brush" id="toolBrush" aria-pressed="false" aria-label="Pencil">✏️ Pencil</button>
+          <button class="btn small top-tool-btn" data-mode="text" id="toolText" aria-pressed="false" aria-label="Text">🅰️ Text</button>
+          <button class="btn small top-tool-btn" data-mode="filters" id="toolFilters" aria-pressed="false" aria-label="Filters">🎛️ Filters</button>
+          <button class="btn small top-tool-btn" data-mode="transform" id="toolTransform" aria-pressed="false" aria-label="Transform">🔁 Transform</button>
+          <button class="btn small top-tool-btn" data-mode="crop" id="toolCrop" aria-pressed="false" aria-label="Crop and Resize">✂️ Crop/Resize</button>
+        </div>
+        <!-- Top filters quick actions (desktop) -->
+        <div class="top-filters" id="topFilters" aria-hidden="true">
+          <button class="btn small" id="topFilterGray">Gray</button>
+          <button class="btn small" id="topFilterSepia">Sepia</button>
+          <button class="btn small" id="topFilterInvert">Invert</button>
+          <button class="btn small" id="topFilterReset">Reset</button>
+        </div>
+        <div class="top-undo-redo">
+          <button id="undoTop" class="btn small" aria-label="Undo">◀️</button>
+          <button id="redoTop" class="btn small" aria-label="Redo">▶️</button>
+          <button id="downloadBtn" class="btn">Download</button>
+        </div>
       </div>
     </header>
 

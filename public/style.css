@@ -56,6 +56,23 @@ body{
 
 /* top actions */
 .top-actions { display:flex; align-items:center; gap:8px; }
+/* top tools styling */
+.top-tools { display:flex; gap:6px; align-items:center; margin-left:8px; }
+.top-tool-btn { padding:6px 8px; border-radius:8px; }
+.top-undo-redo { display:flex; gap:6px; align-items:center; margin-left:8px; }
+.top-filters {
+  display:none;
+  position:absolute;
+  top:56px;
+  left: 120px;
+  gap:6px;
+  background: var(--panel);
+  padding:8px;
+  border-radius:8px;
+  border:1px solid var(--glass-border);
+  z-index:60;
+}
+.top-filters.open { display:flex; }
 .upload-label { display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
 .upload-label input { display:none; }
 
@@ -167,7 +184,10 @@ canvas { display:block; width:100% !important; height:100% !important; backgroun
 /* responsive: larger screens layout (desktop) */
 @media (min-width: 900px) {
   .main { grid-template-columns: 320px 1fr; }
-  .sidebar { position: static; transform: none; width: auto; max-width: none; top: 0; height:100%; padding:16px; box-shadow:none; border-right:1px solid var(--glass-border); }
+  /* hide the sidebar on desktop since tools are on top now */
+  .sidebar { display:none; }
+  /* show filters popover inline on larger screens */
+  .top-filters { display:flex; }
   .sidebar.open { transform:none; }
   .topbar .left .icon-btn { display:none; }
   .editor { padding:16px; }
