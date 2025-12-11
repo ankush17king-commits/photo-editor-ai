@@ -2,6 +2,10 @@
   script.js - Updated, cleaned & mobile-ready
 ********************************************/
 
+/* ---------- Vercel Web Analytics ---------- */
+import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics/+esm';
+inject();
+
 /* ---------- Canvas init ---------- */
 const canvas = new fabric.Canvas("editorCanvas", {
   backgroundColor: "#0b0c1a",
