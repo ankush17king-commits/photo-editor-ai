@@ -24,9 +24,19 @@ function showLoader(show) {
 // Clicking the placeholder text opens file upload dialog
 document.addEventListener("DOMContentLoaded", () => {
   const uploadTrigger = document.querySelector(".click-upload");
-  uploadTrigger.addEventListener("click", () => {
-    document.getElementById("uploadImage").click();
-  });
+  const uploadInput = document.getElementById("uploadImage");
+  if (uploadTrigger && uploadInput) {
+    uploadTrigger.addEventListener("click", () => {
+      uploadInput.click();
+    });
+    // accessibility: allow Enter / Space to trigger upload
+    uploadTrigger.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        uploadInput.click();
+      }
+    });
+  }
 });
 
 
@@ -81,15 +91,25 @@ function saveState() {
   }
 }
 
-document.getElementById("undoBtn").addEventListener("click", () => {
-  if (!history.length) return;
-  isUndoing = true;
-  const last = history.pop();
-  canvas.loadFromJSON(last, () => {
-    canvas.renderAll();
-    isUndoing = false;
+const undoBtn = document.getElementById("undoBtn");
+if (undoBtn) {
+  undoBtn.addEventListener("click", () => {
+    // require at least two states: current + previous
+    if (history.length < 2) return;
+    isUndoing = true;
+    // drop current state
+    history.pop();
+    const prev = history[history.length - 1];
+    if (!prev) {
+      isUndoing = false;
+      return;
+    }
+    canvas.loadFromJSON(prev, () => {
+      canvas.renderAll();
+      isUndoing = false;
+    });
   });
-});
+}
 
 ["object:added", "object:modified", "object:removed"].forEach((ev) => {
   canvas.on(ev, () => saveState());
