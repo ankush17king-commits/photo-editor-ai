@@ -192,6 +192,18 @@ input:focus, select:focus, button:focus { outline: none; box-shadow: 0 6px 18px 
 @media (min-width: 1400px) {
   .canvas-wrapper { max-width: 1180px; margin: 0 auto; }
 }
+.placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #aaaaaa;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 
 /* last: ensure file input label looks like a button */
 .upload-label { background: rgba(255,255,255,0.02); padding:8px 10px; border-radius:999px; border:1px solid var(--glass-border); display:inline-flex; align-items:center; gap:8px; }

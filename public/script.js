@@ -91,6 +91,7 @@ document.getElementById("undoBtn").addEventListener("click", () => {
 document.getElementById("uploadImage").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
+document.getElementById("placeholderText").style.display = "none";
 
   const reader = new FileReader();
   reader.onload = function (f) {
