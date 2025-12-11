@@ -154,6 +154,31 @@ input[type="color"] { padding:6px; height:38px; }
   box-shadow: var(--shadow-strong);
 }
 
+/* Object contextual toolbar */
+.object-toolbar {
+  position: fixed;
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(10,12,25,0.95);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  z-index: 120;
+  transform-origin: center;
+  transition: opacity .14s ease, transform .14s ease;
+}
+.object-toolbar.hidden { display: none; opacity: 0; transform: scale(.98); }
+
+/* Topbar modern polish */
+.topbar { background: linear-gradient(90deg, rgba(10,12,25,0.95), rgba(6,8,20,0.9)); box-shadow: 0 4px 18px rgba(2,6,23,0.6); }
+.btn { transition: transform .08s ease, box-shadow .08s ease, background .12s ease; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.45); }
+.btn.primary:hover { box-shadow: 0 10px 30px rgba(99,102,241,0.14); }
+
+/* tooltip using title attribute fallback handled by browser; ensure buttons are accessible */
+
+
 /* ensure canvas fills wrapper - JS will set logical sizes */
 canvas { display:block; width:100% !important; height:100% !important; background: transparent; }
 
@@ -187,10 +212,14 @@ canvas { display:block; width:100% !important; height:100% !important; backgroun
      this prevents the canvas from shifting left in fullscreen */
   .main { grid-template-columns: 1fr; }
   /* hide the sidebar on desktop since tools are on top now */
-  .sidebar { display:none; }
+  /* keep the sidebar available as an off-canvas panel (don't use display:none)
+     so the menu button can open it even in fullscreen */
+  .sidebar { display:block; }
   /* show filters popover inline on larger screens */
   .top-filters { display:flex; }
   .sidebar.open { transform:none; }
+  /* ensure menu button remains visible in fullscreen / desktop */
+  .topbar .left .icon-btn { display:inline-flex; z-index:70; }
   .editor { padding:16px; }
   .canvas-wrapper { border-radius:16px; }
 }

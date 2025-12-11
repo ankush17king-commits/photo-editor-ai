@@ -6,6 +6,12 @@
   <title>PhotonX — Mobile Friendly</title>
   <script defer src="https://va.vercel-scripts.com/v1/script.js"></script>
 
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p1CmXlVvXrBq4lGk1+8zYv8+Y5x7Gm7q8wqQX1u5rJpY3oQF9H4f2l9+q1i4w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 </head>
@@ -140,6 +146,14 @@
   </div>
       </section>
     </div>
+  </div>
+
+  <!-- Contextual toolbar for selected objects -->
+  <div id="objectToolbar" class="object-toolbar hidden" aria-hidden="true">
+    <button id="objRotateLeft" class="btn small" title="Rotate left"><i class="fa-solid fa-rotate-left"></i></button>
+    <button id="objRotateRight" class="btn small" title="Rotate right"><i class="fa-solid fa-rotate-right"></i></button>
+    <button id="objBringForward" class="btn small" title="Bring forward"><i class="fa-solid fa-arrow-up"></i></button>
+    <button id="objDelete" class="btn small danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
   </div>
 
   <div id="loader" class="loader hidden">

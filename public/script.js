@@ -39,6 +39,27 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  // keyboard shortcuts for undo/redo/delete
+  document.addEventListener("keydown", (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      handleUndo();
+    }
+    if (mod && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+      e.preventDefault();
+      handleRedo();
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      const obj = canvas.getActiveObject();
+      if (obj) {
+        canvas.remove(obj);
+        canvas.discardActiveObject();
+        canvas.renderAll();
+        saveState();
+      }
+    }
+  });
 });
 
 
@@ -345,6 +366,9 @@ document.getElementById("addTextBtn").addEventListener("click", () => {
 
 canvas.on("selection:created", updateTextControls);
 canvas.on("selection:updated", updateTextControls);
+canvas.on("selection:created", showObjectToolbar);
+canvas.on("selection:updated", showObjectToolbar);
+canvas.on("selection:cleared", hideObjectToolbar);
 
 function updateTextControls() {
   const obj = canvas.getActiveObject();
@@ -355,6 +379,62 @@ function updateTextControls() {
     fontFamilySelect.value = obj.fontFamily || "Poppins";
   }
 }
+
+/* ---------- Contextual Object Toolbar ---------- */
+const objectToolbar = document.getElementById("objectToolbar");
+const objRotateLeft = document.getElementById("objRotateLeft");
+const objRotateRight = document.getElementById("objRotateRight");
+const objBringForward = document.getElementById("objBringForward");
+const objDelete = document.getElementById("objDelete");
+
+function showObjectToolbar() {
+  const obj = canvas.getActiveObject();
+  if (!obj || !objectToolbar) return hideObjectToolbar();
+  // ensure toolbar visible
+  objectToolbar.classList.remove("hidden");
+  objectToolbar.setAttribute("aria-hidden", "false");
+  positionObjectToolbar(obj);
+}
+
+function hideObjectToolbar() {
+  if (!objectToolbar) return;
+  objectToolbar.classList.add("hidden");
+  objectToolbar.setAttribute("aria-hidden", "true");
+}
+
+function positionObjectToolbar(obj) {
+  const wrapper = document.querySelector('.canvas-wrapper');
+  if (!wrapper) return;
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const rect = obj.getBoundingRect(true);
+  const toolbarRect = objectToolbar.getBoundingClientRect();
+  const left = Math.round(wrapperRect.left + rect.left + rect.width / 2 - toolbarRect.width / 2);
+  const top = Math.round(wrapperRect.top + rect.top - toolbarRect.height - 10);
+  objectToolbar.style.left = `${Math.max(8, left)}px`;
+  objectToolbar.style.top = `${Math.max(8, top)}px`;
+}
+
+if (objRotateLeft) objRotateLeft.addEventListener('click', () => {
+  const obj = canvas.getActiveObject(); if (!obj) return;
+  obj.rotate((obj.angle || 0) - 15);
+  canvas.renderAll(); saveState();
+});
+if (objRotateRight) objRotateRight.addEventListener('click', () => {
+  const obj = canvas.getActiveObject(); if (!obj) return;
+  obj.rotate((obj.angle || 0) + 15);
+  canvas.renderAll(); saveState();
+});
+if (objBringForward) objBringForward.addEventListener('click', () => {
+  const obj = canvas.getActiveObject(); if (!obj) return;
+  canvas.bringForward(obj);
+  canvas.renderAll(); saveState();
+});
+if (objDelete) objDelete.addEventListener('click', () => {
+  const obj = canvas.getActiveObject(); if (!obj) return;
+  canvas.remove(obj);
+  hideObjectToolbar();
+  canvas.renderAll(); saveState();
+});
 
 fontSizeInput.addEventListener("input", () => {
   const obj = canvas.getActiveObject();
