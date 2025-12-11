@@ -1,7 +1,12 @@
-let canvas = new fabric.Canvas("editorCanvas", {
+/*******************************************
+  script.js - Updated, cleaned & mobile-ready
+********************************************/
+
+/* ---------- Canvas init ---------- */
+const canvas = new fabric.Canvas("editorCanvas", {
   backgroundColor: "#0b0c1a",
   selection: true,
-  preserveObjectStacking: true
+  preserveObjectStacking: true,
 });
 
 let currentImage = null;
@@ -11,35 +16,61 @@ let currentMode = "move";
 let cropRect = null;
 let isCropMode = false;
 
+/* loader element */
 const loader = document.getElementById("loader");
-
 function showLoader(show) {
   loader.classList.toggle("hidden", !show);
 }
 
-/* ---------- Resize Canvas to Full Wrapper ---------- */
-
+/* ---------- Responsive / Crisp Canvas ---------- */
 function resizeCanvas() {
   const wrapper = document.querySelector(".canvas-wrapper");
+  if (!wrapper) return;
   const rect = wrapper.getBoundingClientRect();
-  canvas.setWidth(rect.width);
-  canvas.setHeight(rect.height);
+
+  // CSS pixel size (space in layout)
+  const cssWidth = Math.max(320, Math.floor(rect.width));
+  const cssHeight = Math.max(320, Math.floor(rect.height));
+
+  // device pixel ratio for crisp rendering
+  const ratio = window.devicePixelRatio || 1;
+
+  // Set CSS sizes
+  canvas.setWidth(cssWidth);
+  canvas.setHeight(cssHeight);
+
+  // Set backing store size for crispness (backstoreOnly avoids changing object coords)
+  canvas.setDimensions(
+    { width: Math.floor(cssWidth * ratio), height: Math.floor(cssHeight * ratio) },
+    { backstoreOnly: true }
+  );
+
+  // If you want to scale content based on physical size, reconsider scaling objects here.
+  canvas.setZoom(1);
   canvas.renderAll();
+
   if (currentImage) {
     currentImage.setCoords();
   }
 }
 
 window.addEventListener("resize", resizeCanvas);
-window.addEventListener("load", resizeCanvas);
+window.addEventListener("orientationchange", resizeCanvas);
+window.addEventListener("load", () => {
+  resizeCanvas();
+  setTimeout(resizeCanvas, 250);
+});
 
 /* ---------- History (Undo) ---------- */
-
 function saveState() {
   if (isUndoing) return;
-  const json = canvas.toJSON();
-  history.push(json);
-  if (history.length > 40) history.shift();
+  try {
+    const json = canvas.toJSON(["selectable"]);
+    history.push(json);
+    if (history.length > 40) history.shift();
+  } catch (e) {
+    console.warn("saveState error", e);
+  }
 }
 
 document.getElementById("undoBtn").addEventListener("click", () => {
@@ -56,8 +87,7 @@ document.getElementById("undoBtn").addEventListener("click", () => {
   canvas.on(ev, () => saveState());
 });
 
-/* ---------- Upload ---------- */
-
+/* ---------- Upload Image ---------- */
 document.getElementById("uploadImage").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -73,11 +103,13 @@ document.getElementById("uploadImage").addEventListener("change", (e) => {
       saveState();
       document.getElementById("imgWidth").value = Math.round(img.getScaledWidth());
       document.getElementById("imgHeight").value = Math.round(img.getScaledHeight());
+      canvas.renderAll();
     });
   };
   reader.readAsDataURL(file);
 });
 
+/* ---------- Fit Image ---------- */
 function fitImageToCanvas(img) {
   const canvasWidth = canvas.getWidth();
   const canvasHeight = canvas.getHeight();
@@ -96,14 +128,14 @@ function fitImageToCanvas(img) {
     left: canvasWidth / 2,
     top: canvasHeight / 2,
     originX: "center",
-    originY: "center"
+    originY: "center",
+    selectable: true,
   });
+  img.setCoords();
 }
 
-/* ---------- Modes (Move / Brush / Eraser / Crop) ---------- */
-
+/* ---------- Tool Modes (Move / Brush / Eraser / Crop) ---------- */
 const toolButtons = document.querySelectorAll(".tool-btn");
-
 toolButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     toolButtons.forEach((b) => b.classList.remove("active"));
@@ -114,6 +146,14 @@ toolButtons.forEach((btn) => {
 });
 
 function updateMode() {
+  // Reset listeners that might conflict
+  canvas.isDrawingMode = false;
+  canvas.selection = true;
+  canvas.off("mouse:down", handleEraser);
+  canvas.off("mouse:down", startCropRect);
+  canvas.off("mouse:move", resizeCropRect);
+  canvas.off("mouse:up", finishCropRect);
+
   if (currentMode === "brush") {
     canvas.isDrawingMode = true;
     setupBrush();
@@ -126,6 +166,7 @@ function updateMode() {
     canvas.isDrawingMode = false;
     enableCropMode();
   } else {
+    // move/default
     canvas.isDrawingMode = false;
     isCropMode = false;
     if (cropRect) {
@@ -136,24 +177,25 @@ function updateMode() {
 }
 
 /* ---------- Brush Settings ---------- */
-
 const brushTypeSelect = document.getElementById("brushType");
 const brushColorInput = document.getElementById("brushColor");
 const brushSizeInput = document.getElementById("brushSize");
 
 function setupBrush() {
-  canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-  canvas.freeDrawingBrush.color = brushColorInput.value;
+  // Use PencilBrush for normal drawing
+  const pencil = new fabric.PencilBrush(canvas);
   let size = parseInt(brushSizeInput.value, 10) || 10;
-  let type = brushTypeSelect.value;
+  const type = brushTypeSelect.value;
 
-  if (type === "marker") {
+  if (type === "marker") size *= 2;
+  if (type === "highlighter") {
     size *= 2;
-  } else if (type === "highlighter") {
-    size *= 2;
-    canvas.freeDrawingBrush.color = hexToRgba(brushColorInput.value, 0.4);
+    pencil.color = hexToRgba(brushColorInput.value, 0.4);
+  } else {
+    pencil.color = brushColorInput.value;
   }
-  canvas.freeDrawingBrush.width = size;
+  pencil.width = size;
+  canvas.freeDrawingBrush = pencil;
 }
 
 function hexToRgba(hex, alpha) {
@@ -174,10 +216,9 @@ brushSizeInput.addEventListener("input", () => {
   if (currentMode === "brush") setupBrush();
 });
 
-/* ---------- Eraser ---------- */
-
+/* ---------- Eraser (removes drawn paths / shapes under pointer) ---------- */
 function enableEraser() {
-  canvas.isDrawingMode = false;
+  canvas.selection = false;
   canvas.on("mouse:down", handleEraser);
 }
 
@@ -185,27 +226,37 @@ function handleEraser(opt) {
   if (currentMode !== "eraser") return;
   const evt = opt.e;
   const pointer = canvas.getPointer(evt);
-  const eraseCircle = new fabric.Circle({
-    left: pointer.x,
-    top: pointer.y,
-    radius: parseInt(brushSizeInput.value, 10) || 10,
-    originX: "center",
-    originY: "center"
-  });
+  const radius = parseInt(brushSizeInput.value, 10) || 10;
 
-  canvas.remove(eraseCircle);
-
-  const objects = canvas.getObjects();
-  objects.forEach((obj) => {
-    if (obj === eraseCircle) return;
-    if (obj.containsPoint(pointer) && obj !== currentImage) {
-      canvas.remove(obj);
+  // Remove paths/objects that intersect pointer (exclude the background image)
+  const objects = canvas.getObjects().slice().reverse(); // top-first
+  for (const obj of objects) {
+    if (!obj || obj === currentImage) continue;
+    // For paths and simple shapes, use containsPoint
+    try {
+      if (obj.containsPoint && obj.containsPoint(pointer)) {
+        canvas.remove(obj);
+      } else {
+        // fallback: bounding box check
+        const bb = obj.getBoundingRect();
+        if (
+          pointer.x >= bb.left &&
+          pointer.x <= bb.left + bb.width &&
+          pointer.y >= bb.top &&
+          pointer.y <= bb.top + bb.height
+        ) {
+          canvas.remove(obj);
+        }
+      }
+    } catch (e) {
+      // ignore objects that can't be tested
     }
-  });
+  }
+  canvas.renderAll();
+  saveState();
 }
 
-/* ---------- Text ---------- */
-
+/* ---------- Text Tools ---------- */
 const textInput = document.getElementById("textInput");
 const fontSizeInput = document.getElementById("fontSize");
 const textColorInput = document.getElementById("textColor");
@@ -222,7 +273,7 @@ document.getElementById("addTextBtn").addEventListener("click", () => {
     fontSize: parseInt(fontSizeInput.value, 10) || 32,
     fill: textColorInput.value,
     fontFamily: fontFamilySelect.value,
-    editable: true
+    editable: true,
   });
 
   canvas.add(text);
@@ -252,7 +303,6 @@ fontSizeInput.addEventListener("input", () => {
     saveState();
   }
 });
-
 textColorInput.addEventListener("input", () => {
   const obj = canvas.getActiveObject();
   if (obj && obj.type === "textbox") {
@@ -261,7 +311,6 @@ textColorInput.addEventListener("input", () => {
     saveState();
   }
 });
-
 fontFamilySelect.addEventListener("change", () => {
   const obj = canvas.getActiveObject();
   if (obj && obj.type === "textbox") {
@@ -271,8 +320,7 @@ fontFamilySelect.addEventListener("change", () => {
   }
 });
 
-/* ---------- Filters ---------- */
-
+/* ---------- Image Filters ---------- */
 const filterButtons = document.querySelectorAll(".filter-btn");
 const resetFiltersBtn = document.getElementById("resetFilters");
 
@@ -296,7 +344,6 @@ function applyFilter(type) {
   if (!currentImage) return;
   const filters = fabric.Image.filters;
   let f;
-
   switch (type) {
     case "grayscale":
       f = new filters.Grayscale();
@@ -310,7 +357,6 @@ function applyFilter(type) {
     default:
       return;
   }
-
   currentImage.filters = [f];
   currentImage.applyFilters();
   canvas.renderAll();
@@ -318,7 +364,6 @@ function applyFilter(type) {
 }
 
 /* ---------- Transform: Rotate + Scale ---------- */
-
 const rotateRange = document.getElementById("rotateRange");
 const scaleRange = document.getElementById("scaleRange");
 
@@ -337,24 +382,29 @@ scaleRange.addEventListener("input", () => {
   saveState();
 });
 
-document.getElementById("rotateLeft").addEventListener("click", () => {
-  if (!currentImage) return;
-  currentImage.rotate((currentImage.angle || 0) - 90);
-  rotateRange.value = currentImage.angle;
-  canvas.renderAll();
-  saveState();
-});
+/* optional rotate buttons if present in HTML */
+const rotateLeftBtn = document.getElementById("rotateLeft");
+const rotateRightBtn = document.getElementById("rotateRight");
+if (rotateLeftBtn) {
+  rotateLeftBtn.addEventListener("click", () => {
+    if (!currentImage) return;
+    currentImage.rotate((currentImage.angle || 0) - 90);
+    rotateRange.value = currentImage.angle;
+    canvas.renderAll();
+    saveState();
+  });
+}
+if (rotateRightBtn) {
+  rotateRightBtn.addEventListener("click", () => {
+    if (!currentImage) return;
+    currentImage.rotate((currentImage.angle || 0) + 90);
+    rotateRange.value = currentImage.angle;
+    canvas.renderAll();
+    saveState();
+  });
+}
 
-document.getElementById("rotateRight").addEventListener("click", () => {
-  if (!currentImage) return;
-  currentImage.rotate((currentImage.angle || 0) + 90);
-  rotateRange.value = currentImage.angle;
-  canvas.renderAll();
-  saveState();
-});
-
-/* ---------- Resize Image (width/height) ---------- */
-
+/* ---------- Resize Image ---------- */
 document.getElementById("applyResize").addEventListener("click", () => {
   if (!currentImage) return;
   const w = parseInt(document.getElementById("imgWidth").value, 10);
@@ -367,14 +417,13 @@ document.getElementById("applyResize").addEventListener("click", () => {
   const scaleY = h / origH;
   currentImage.set({
     scaleX: scaleX,
-    scaleY: scaleY
+    scaleY: scaleY,
   });
   canvas.renderAll();
   saveState();
 });
 
 /* ---------- Crop ---------- */
-
 const startCropBtn = document.getElementById("startCrop");
 const applyCropBtn = document.getElementById("applyCrop");
 const cancelCropBtn = document.getElementById("cancelCrop");
@@ -406,9 +455,9 @@ function startCropRect(opt) {
     height: 0,
     stroke: "#ffffff",
     strokeWidth: 1,
-    fill: "rgba(255,255,255,0.1)",
+    fill: "rgba(255,255,255,0.12)",
     selectable: false,
-    evented: false
+    evented: false,
   });
   canvas.add(cropRect);
 }
@@ -416,43 +465,50 @@ function startCropRect(opt) {
 function resizeCropRect(opt) {
   if (!isCropMode || !cropRect) return;
   const pointer = canvas.getPointer(opt.e);
-
   cropRect.set({
-    width: pointer.x - cropRect.left,
-    height: pointer.y - cropRect.top
+    width: Math.max(1, pointer.x - cropRect.left),
+    height: Math.max(1, pointer.y - cropRect.top),
   });
   cropRect.setCoords();
   canvas.renderAll();
 }
 
-function finishCropRect() {}
+function finishCropRect() {
+  // nothing here – applyCrop will use the cropRect
+}
 
 function applyCrop() {
   if (!isCropMode || !cropRect || !currentImage) return;
-  const rect = cropRect.getBoundingRect();
+  const rect = cropRect.getBoundingRect(true);
 
   const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = rect.width;
-  tempCanvas.height = rect.height;
+  tempCanvas.width = Math.round(rect.width);
+  tempCanvas.height = Math.round(rect.height);
   const ctx = tempCanvas.getContext("2d");
 
+  // source image element
   const imgEl = currentImage._originalElement || currentImage._element;
-  const zoom = canvas.getZoom ? canvas.getZoom() : 1;
+  if (!imgEl) {
+    alert("Crop not possible: internal image not accessible.");
+    return;
+  }
 
-  const sx = (rect.left - currentImage.left + currentImage.getScaledWidth() / 2) / currentImage.scaleX;
-  const sy = (rect.top - currentImage.top + currentImage.getScaledHeight() / 2) / currentImage.scaleY;
+  // Calculate cropping source coordinates on original image
+  // Get scaled/positioned info
+  const imgLeft = currentImage.left - currentImage.getScaledWidth() / 2;
+  const imgTop = currentImage.top - currentImage.getScaledHeight() / 2;
+  const sx = (rect.left - imgLeft) / currentImage.scaleX;
+  const sy = (rect.top - imgTop) / currentImage.scaleY;
+  const sWidth = rect.width / currentImage.scaleX;
+  const sHeight = rect.height / currentImage.scaleY;
 
-  ctx.drawImage(
-    imgEl,
-    sx, sy, rect.width / currentImage.scaleX, rect.height / currentImage.scaleY,
-    0, 0, rect.width, rect.height
-  );
+  ctx.drawImage(imgEl, sx, sy, sWidth, sHeight, 0, 0, rect.width, rect.height);
 
   const dataUrl = tempCanvas.toDataURL("image/png");
 
   fabric.Image.fromURL(dataUrl, (img) => {
     canvas.remove(currentImage);
-    canvas.remove(cropRect);
+    if (cropRect) canvas.remove(cropRect);
     cropRect = null;
     currentImage = img;
     fitImageToCanvas(img);
@@ -479,11 +535,10 @@ function cancelCrop() {
 }
 
 /* ---------- Download ---------- */
-
 document.getElementById("downloadBtn").addEventListener("click", () => {
   const dataURL = canvas.toDataURL({
     format: "png",
-    quality: 1
+    quality: 1,
   });
   const link = document.createElement("a");
   link.href = dataURL;
@@ -492,7 +547,6 @@ document.getElementById("downloadBtn").addEventListener("click", () => {
 });
 
 /* ---------- Clear ---------- */
-
 document.getElementById("clearBtn").addEventListener("click", () => {
   canvas.clear();
   canvas.setBackgroundColor("#0b0c1a", canvas.renderAll.bind(canvas));
@@ -501,22 +555,25 @@ document.getElementById("clearBtn").addEventListener("click", () => {
 });
 
 /* ---------- AI: Remove Background ---------- */
-
 document.getElementById("removeBgBtn").addEventListener("click", async () => {
-  if (!currentImage) return;
+  if (!currentImage) return alert("Please upload an image first.");
   showLoader(true);
+
+  // If using entire canvas, convert to PNG data url and strip prefix
   const dataURL = canvas.toDataURL({ format: "png", quality: 1 });
+  const base64 = dataURL.split(",")[1]; // send raw base64 only
 
   try {
     const res = await fetch("/api/remove-bg", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: dataURL })
+      body: JSON.stringify({ image: base64 }),
     });
 
     const data = await res.json();
-    if (data.success && data.image) {
-      fabric.Image.fromURL(data.image, (img) => {
+    if (data && data.success && data.image) {
+      const imgDataURL = "data:image/png;base64," + data.image;
+      fabric.Image.fromURL(imgDataURL, (img) => {
         canvas.clear();
         currentImage = img;
         fitImageToCanvas(img);
@@ -525,33 +582,38 @@ document.getElementById("removeBgBtn").addEventListener("click", async () => {
         saveState();
       });
     } else {
-      alert("Remove background failed (backend not configured)");
+      console.warn("remove-bg response:", data);
+      alert("Remove background failed (backend returned error).");
     }
   } catch (err) {
     console.error(err);
-    alert("Error calling background removal API");
+    alert("Error calling background removal API.");
   } finally {
     showLoader(false);
   }
 });
 
-/* ---------- AI: B&W → Color ---------- */
-
+/* ---------- AI: Colorize (placeholder / same flow) ---------- */
 document.getElementById("colorizeBtn").addEventListener("click", async () => {
-  if (!currentImage) return;
+  if (!currentImage) return alert("Please upload an image first.");
   showLoader(true);
+
   const dataURL = canvas.toDataURL({ format: "png", quality: 1 });
+  const base64 = dataURL.split(",")[1];
 
   try {
     const res = await fetch("/api/colorize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: dataURL })
+      body: JSON.stringify({ image: base64 }),
     });
 
     const data = await res.json();
-    if (data.success && data.image) {
-      fabric.Image.fromURL(data.image, (img) => {
+    if (data && data.success && data.image) {
+      const imgDataURL = data.image.startsWith("data:")
+        ? data.image
+        : "data:image/png;base64," + data.image;
+      fabric.Image.fromURL(imgDataURL, (img) => {
         canvas.clear();
         currentImage = img;
         fitImageToCanvas(img);
@@ -560,15 +622,18 @@ document.getElementById("colorizeBtn").addEventListener("click", async () => {
         saveState();
       });
     } else {
-      alert("Colorization failed (backend not configured)");
+      console.warn("colorize response:", data);
+      alert("Colorization failed (backend returned error).");
     }
   } catch (err) {
     console.error(err);
-    alert("Error calling colorization API");
+    alert("Error calling colorization API.");
   } finally {
     showLoader(false);
   }
 });
 
-/* ---------- Initial Mode ---------- */
+/* ---------- Init ---------- */
+canvas.setBackgroundColor("#0b0c1a", canvas.renderAll.bind(canvas));
 updateMode();
+saveState();

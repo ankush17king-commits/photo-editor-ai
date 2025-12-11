@@ -1,113 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Pro Photo Editor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PhotonX — Mobile Friendly</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 </head>
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="logo">PhotonX</div>
+      <div class="left">
+        <button id="menuToggle" class="icon-btn">☰</button>
+        <div class="logo">PhotonX</div>
+      </div>
+
       <div class="top-actions">
-        <label class="btn primary">
+        <label class="btn primary upload-label">
           Upload
           <input type="file" id="uploadImage" accept="image/*" hidden>
         </label>
         <button id="downloadBtn" class="btn">Download</button>
-        <button id="clearBtn" class="btn danger">Clear</button>
       </div>
     </header>
 
     <div class="main">
-      <aside class="sidebar">
-        <h3>Tools</h3>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-scroll">
+          <h3>Tools</h3>
 
-        <div class="tool-group">
-          <h4>Mode</h4>
-          <button class="btn small tool-btn active" data-mode="move">Move</button>
-          <button class="btn small tool-btn" data-mode="brush">Brush</button>
-          <button class="btn small tool-btn" data-mode="eraser">Eraser</button>
-          <button class="btn small tool-btn" data-mode="crop">Crop</button>
-        </div>
+          <div class="tool-group">
+            <h4>Mode</h4>
+            <div class="tool-row">
+              <button class="btn small tool-btn active" data-mode="move">Move</button>
+              <button class="btn small tool-btn" data-mode="brush">Brush</button>
+              <button class="btn small tool-btn" data-mode="eraser">Eraser</button>
+              <button class="btn small tool-btn" data-mode="crop">Crop</button>
+            </div>
+          </div>
 
-        <div class="tool-group">
-          <h4>Brush</h4>
-          <label>Type</label>
-          <select id="brushType">
-            <option value="pencil">Pencil</option>
-            <option value="marker">Marker</option>
-            <option value="highlighter">Highlighter</option>
-          </select>
-          <label>Color</label>
-          <input type="color" id="brushColor" value="#ffffff">
-          <label>Size</label>
-          <input type="range" id="brushSize" min="1" max="60" value="10">
-        </div>
+          <div class="tool-group">
+            <h4>Brush</h4>
+            <select id="brushType">
+              <option value="pencil">Pencil</option>
+              <option value="marker">Marker</option>
+              <option value="highlighter">Highlighter</option>
+            </select>
+            <input type="color" id="brushColor" value="#ffffff">
+            <input type="range" id="brushSize" min="1" max="60" value="10">
+          </div>
 
-        <div class="tool-group">
-          <h4>Text</h4>
-          <input type="text" id="textInput" placeholder="Type your text">
-          <label>Font Size</label>
-          <input type="range" id="fontSize" min="10" max="80" value="32">
-          <label>Color</label>
-          <input type="color" id="textColor" value="#ffffff">
-          <label>Font</label>
-          <select id="fontFamily">
-            <option value="Poppins">Poppins</option>
-            <option value="Arial">Arial</option>
-            <option value="Courier New">Courier New</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Montserrat">Montserrat</option>
-          </select>
-          <button id="addTextBtn" class="btn small">Add Text</button>
-        </div>
+          <div class="tool-group">
+            <h4>Text</h4>
+            <input type="text" id="textInput" placeholder="Type text here">
+            <input type="range" id="fontSize" min="10" max="80" value="32">
+            <input type="color" id="textColor" value="#ffffff">
+            <select id="fontFamily">
+              <option value="Poppins">Poppins</option>
+              <option value="Arial">Arial</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+            <button id="addTextBtn" class="btn small">Add Text</button>
+          </div>
 
-        <div class="tool-group">
-          <h4>Filters</h4>
-          <button class="btn small filter-btn" data-filter="grayscale">Grayscale</button>
-          <button class="btn small filter-btn" data-filter="sepia">Sepia</button>
-          <button class="btn small filter-btn" data-filter="invert">Invert</button>
-          <button id="resetFilters" class="btn small">Reset</button>
-        </div>
+          <div class="tool-group">
+            <h4>Filters</h4>
+            <div class="tool-row">
+              <button class="btn small filter-btn" data-filter="grayscale">Gray</button>
+              <button class="btn small filter-btn" data-filter="sepia">Sepia</button>
+              <button class="btn small filter-btn" data-filter="invert">Invert</button>
+              <button id="resetFilters" class="btn small">Reset</button>
+            </div>
+          </div>
 
-        <div class="tool-group">
-          <h4>Transform</h4>
-          <label>Rotate</label>
-          <input type="range" id="rotateRange" min="-180" max="180" value="0">
-          <label>Scale</label>
-          <input type="range" id="scaleRange" min="10" max="200" value="100">
-          <button id="rotateLeft" class="btn small">⟲ 90°</button>
-          <button id="rotateRight" class="btn small">⟳ 90°</button>
-        </div>
+          <div class="tool-group">
+            <h4>Transform</h4>
+            <label>Rotate</label>
+            <input type="range" id="rotateRange" min="-180" max="180" value="0">
+            <label>Scale</label>
+            <input type="range" id="scaleRange" min="10" max="200" value="100">
+          </div>
 
-        <div class="tool-group">
-          <h4>Crop</h4>
-          <button id="startCrop" class="btn small">Start Crop</button>
-          <button id="applyCrop" class="btn small">Apply Crop</button>
-          <button id="cancelCrop" class="btn small">Cancel</button>
-        </div>
+          <div class="tool-group">
+            <h4>Crop / Resize</h4>
+            <div class="tool-row">
+              <button id="startCrop" class="btn small">Start Crop</button>
+              <button id="applyCrop" class="btn small">Apply</button>
+              <button id="cancelCrop" class="btn small">Cancel</button>
+            </div>
+            <input type="number" id="imgWidth" placeholder="Width px">
+            <input type="number" id="imgHeight" placeholder="Height px">
+            <button id="applyResize" class="btn small">Apply Resize</button>
+          </div>
 
-        <div class="tool-group">
-          <h4>Resize Image</h4>
-          <label>Width (px)</label>
-          <input type="number" id="imgWidth" min="50">
-          <label>Height (px)</label>
-          <input type="number" id="imgHeight" min="50">
-          <button id="applyResize" class="btn small">Apply</button>
-        </div>
+          <div class="tool-group">
+            <h4>AI Tools</h4>
+            <div class="tool-row">
+              <button id="removeBgBtn" class="btn small primary">Remove BG</button>
+              <button id="colorizeBtn" class="btn small">Colorize</button>
+            </div>
+          </div>
 
-        <div class="tool-group">
-          <h4>AI Tools</h4>
-          <button id="removeBgBtn" class="btn small primary">Remove Background</button>
-          <button id="colorizeBtn" class="btn small">B&W → Color</button>
-        </div>
-
-        <div class="tool-group">
-          <h4>History</h4>
-          <button id="undoBtn" class="btn small">Undo</button>
+          <div class="tool-group">
+            <h4>History</h4>
+            <button id="undoBtn" class="btn small">Undo</button>
+            <button id="clearBtn" class="btn small danger">Clear</button>
+          </div>
         </div>
       </aside>
 
@@ -125,5 +124,19 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // sidebar toggle for small screens
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+    // close sidebar when tapping outside on mobile
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !menuToggle.contains(e.target) && window.innerWidth < 900) {
+        sidebar.classList.remove('open');
+      }
+    });
+  </script>
 </body>
 </html>
