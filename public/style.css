@@ -192,17 +192,31 @@ input:focus, select:focus, button:focus { outline: none; box-shadow: 0 6px 18px 
 @media (min-width: 1400px) {
   .canvas-wrapper { max-width: 1180px; margin: 0 auto; }
 }
+
 .placeholder {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 18px;
-  color: #aaaaaa;
+  font-size: 20px;
+  color: #ccc;
   text-align: center;
-  pointer-events: none;
-  opacity: 0.7;
+  cursor: pointer;
+  opacity: 0.9;
+  z-index: 20;
 }
+
+.click-upload {
+  text-decoration: underline;
+  cursor: pointer;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.click-upload:hover {
+  opacity: 0.8;
+}
+
 
 
 /* last: ensure file input label looks like a button */

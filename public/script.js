@@ -21,6 +21,14 @@ const loader = document.getElementById("loader");
 function showLoader(show) {
   loader.classList.toggle("hidden", !show);
 }
+// Clicking the placeholder text opens file upload dialog
+document.addEventListener("DOMContentLoaded", () => {
+  const uploadTrigger = document.querySelector(".click-upload");
+  uploadTrigger.addEventListener("click", () => {
+    document.getElementById("uploadImage").click();
+  });
+});
+
 
 /* ---------- Responsive / Crisp Canvas ---------- */
 function resizeCanvas() {
@@ -91,24 +99,25 @@ document.getElementById("undoBtn").addEventListener("click", () => {
 document.getElementById("uploadImage").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
-document.getElementById("placeholderText").style.display = "none";
+
+  // Hide placeholder ONLY NOW
+  document.getElementById("placeholderText").style.display = "none";
 
   const reader = new FileReader();
   reader.onload = function (f) {
     fabric.Image.fromURL(f.target.result, function (img) {
       if (currentImage) canvas.remove(currentImage);
       currentImage = img;
+
       fitImageToCanvas(img);
       canvas.add(img);
       canvas.setActiveObject(img);
       saveState();
-      document.getElementById("imgWidth").value = Math.round(img.getScaledWidth());
-      document.getElementById("imgHeight").value = Math.round(img.getScaledHeight());
-      canvas.renderAll();
     });
   };
   reader.readAsDataURL(file);
 });
+
 
 /* ---------- Fit Image ---------- */
 function fitImageToCanvas(img) {
