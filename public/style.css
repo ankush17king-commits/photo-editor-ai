@@ -183,13 +183,14 @@ canvas { display:block; width:100% !important; height:100% !important; backgroun
 
 /* responsive: larger screens layout (desktop) */
 @media (min-width: 900px) {
-  .main { grid-template-columns: 320px 1fr; }
+  /* Use single-column layout on desktop when sidebar is hidden
+     this prevents the canvas from shifting left in fullscreen */
+  .main { grid-template-columns: 1fr; }
   /* hide the sidebar on desktop since tools are on top now */
   .sidebar { display:none; }
   /* show filters popover inline on larger screens */
   .top-filters { display:flex; }
   .sidebar.open { transform:none; }
-  .topbar .left .icon-btn { display:none; }
   .editor { padding:16px; }
   .canvas-wrapper { border-radius:16px; }
 }
