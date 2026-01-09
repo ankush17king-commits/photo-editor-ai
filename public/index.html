@@ -161,7 +161,10 @@
     <span>Processing...</span>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Vercel Web Analytics -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@vercel/analytics/dist/web/auto"></script>
+
+  <script type="module" src="script.js"></script>
   <script>
     // sidebar toggle for small screens
     const menuToggle = document.getElementById('menuToggle');
